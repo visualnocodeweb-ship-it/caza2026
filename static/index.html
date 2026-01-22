@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Caza 2025</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .payment-link-container { min-width: 150px; } /* Adjust width for button or link */
+        .action-button { margin-right: 5px; padding: 5px 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Panel de Registro de Establecimientos - Sistema Caza 2025</h1>
+    <table id="establishmentsTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Email del Propietario</th>
+                <th>CUIT</th>
+                <th>Dirección</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be loaded here -->
+        </tbody>
+    </table>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEstablishments();
+
+            async function loadEstablishments() {
+                try {
+                    const response = await fetch('/establishments');
+                    const data = await response.json();
+                    const tableBody = document.getElementById('establishmentsTable').getElementsByTagName('tbody')[0];
+                    tableBody.innerHTML = ''; // Clear existing rows
+                    
+                    data.forEach(establishment => {
+                        const row = tableBody.insertRow();
+                        row.insertCell().textContent = establishment.id;
+                        row.insertCell().textContent = establishment.name;
+                        row.insertCell().textContent = establishment.owner_email;
+                        row.insertCell().textContent = establishment.cuit;
+                        row.insertCell().textContent = establishment.address;
+                        
+                        const actionsCell = row.insertCell();
+
+                        // PDF Button
+                        const pdfButton = document.createElement('button');
+                        pdfButton.textContent = "Ver PDF";
+                        pdfButton.className = "action-button";
+                        if (establishment.pdf_path) {
+                            pdfButton.onclick = () => window.open(`/${establishment.pdf_path}`, '_blank');
+                        } else {
+                            pdfButton.disabled = true;
+                            pdfButton.title = "PDF aún no generado";
+                        }
+                        actionsCell.appendChild(pdfButton);
+
+                        // Payment Link/Button
+                        const paymentLinkContainer = document.createElement('span');
+                        paymentLinkContainer.className = "payment-link-container";
+                        if (establishment.payment_link) {
+                            const link = document.createElement('a');
+                            link.href = establishment.payment_link;
+                            link.target = "_blank";
+                            link.textContent = "Ir a Pagar";
+                            paymentLinkContainer.appendChild(link);
+                        } else {
+                            const generatePaymentButton = document.createElement('button');
+                            generatePaymentButton.textContent = "Generar Pago";
+                            generatePaymentButton.className = "action-button";
+                            generatePaymentButton.onclick = async () => {
+                                generatePaymentButton.disabled = true;
+                                generatePaymentButton.textContent = "Generando...";
+                                try {
+                                    const paymentResponse = await fetch(`/establishments/${establishment.id}/generate-payment`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        }
+                                    });
+                                    if (paymentResponse.ok) {
+                                        const paymentData = await paymentResponse.json();
+                                        const newLink = document.createElement('a');
+                                        newLink.href = paymentData.payment_link;
+                                        newLink.target = "_blank";
+                                        newLink.textContent = "Ir a Pagar";
+                                        paymentLinkContainer.innerHTML = ''; // Clear button
+                                        paymentLinkContainer.appendChild(newLink);
+                                        // Update the establishment object in the frontend to reflect the change
+                                        establishment.payment_link = paymentData.payment_link;
+                                    } else {
+                                        alert('Error al generar el enlace de pago.');
+                                        generatePaymentButton.disabled = false;
+                                        generatePaymentButton.textContent = "Generar Pago";
+                                    }
+                                } catch (error) {
+                                    console.error('Error generando enlace de pago:', error);
+                                    alert('Error de red al generar el enlace de pago.');
+                                    generatePaymentButton.disabled = false;
+                                    generatePaymentButton.textContent = "Generar Pago";
+                                }
+                            };
+                            paymentLinkContainer.appendChild(generatePaymentButton);
+                        }
+                        actionsCell.appendChild(paymentLinkContainer);
+                    });
+                } catch (error) {
+                    console.error('Error fetching establishments:', error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
