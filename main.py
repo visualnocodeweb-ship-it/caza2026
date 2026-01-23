@@ -31,6 +31,7 @@ class EstablishmentCreate(EstablishmentBase):
 class EstablishmentSchema(EstablishmentBase):
     id: int
     payment_link: Optional[str] = None # Added payment_link to schema
+    pdf_path: Optional[str] = None # Added pdf_path to schema
 
     class Config:
         from_attributes = True
