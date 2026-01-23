@@ -151,18 +151,20 @@ async def handle_webhook(
     db: Session = Depends(get_db)
 ):
     try:
-        db_establishment = Establishment(**establishment.dict())
+        print(f"DEBUG: Incoming Pydantic model from webhook: {establishment.model_dump_json()}") # Debug print 1
+        
+        db_establishment = Establishment(**establishment.model_dump()) # Use model_dump for Pydantic v2
         db.add(db_establishment)
         db.commit() # Commit here to get the ID for PDF generation
         db.refresh(db_establishment)
-        print("Received webhook payload and saved to DB (initial):", db_establishment.name, db_establishment.id)
+        print("DEBUG: db_establishment after initial commit:", db_establishment.id, db_establishment.name, db_establishment.owner_email, db_establishment.cuit, db_establishment.address) # Debug print 2
 
         # PDF is still generated automatically on webhook receipt
-        pdf_path = generate_establishment_pdf(EstablishmentSchema.from_orm(db_establishment))
+        pdf_path = generate_establishment_pdf(EstablishmentSchema.model_validate(db_establishment)) # Use model_validate for Pydantic v2
         db_establishment.pdf_path = pdf_path # Assign pdf_path to the database object
         db.commit() # Commit again to save pdf_path
         db.refresh(db_establishment)
-        print("Received webhook payload and saved to DB (final):", db_establishment.name, db_establishment.id, db_establishment.pdf_path)
+        print("DEBUG: db_establishment after saving pdf_path:", db_establishment.id, db_establishment.name, db_establishment.owner_email, db_establishment.cuit, db_establishment.address, db_establishment.pdf_path) # Debug print 3
 
         return EstablishmentResponse(
             id=db_establishment.id,
