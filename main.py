@@ -9,8 +9,8 @@ from sqlalchemy.exc import IntegrityError
 import mercadopago
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from database import Establishment, create_db_and_tables, get_db # Changed from .database
-from airtable_service import get_current_price # Changed from .airtable_service
+from database import Establishment, create_db_and_tables, get_db
+from airtable_service import get_current_price
 
 # Initialize Mercado Pago SDK
 # IMPORTANT: Replace with your actual Mercado Pago Access Token
@@ -44,6 +44,10 @@ class EstablishmentPaymentLink(BaseModel):
 
 app = FastAPI()
 
+# Ensure the 'pdfs' directory exists before mounting StaticFiles
+if not os.path.exists("pdfs"):
+    os.makedirs("pdfs")
+
 # Serve static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -53,8 +57,9 @@ app.mount("/pdfs", StaticFiles(directory="pdfs"), name="pdfs")
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
-    if not os.path.exists("pdfs"):
-        os.makedirs("pdfs")
+    # The 'pdfs' directory is now created before app.mount, so no need here
+    # if not os.path.exists("pdfs"):
+    #     os.makedirs("pdfs")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root_redirect():
