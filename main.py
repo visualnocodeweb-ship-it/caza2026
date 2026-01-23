@@ -7,8 +7,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 import mercadopago
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from weasyprint import HTML, CSS # New PDF library
 from database import Establishment, create_db_and_tables, get_db
 from airtable_service import get_current_price
 
@@ -119,31 +118,42 @@ def create_mercadopago_preference(establishment_data: EstablishmentSchema) -> Op
 
 def generate_establishment_pdf(establishment_data: EstablishmentSchema) -> Optional[str]:
     """
-    Generates a PDF certificate for the given establishment.
+    Generates a PDF certificate for the given establishment using WeasyPrint.
     """
     try:
-        file_name_with_path = f"pdfs/registro_{establishment_data.id}.pdf"
-        file_name_only = f"registro_{establishment_data.id}.pdf" # Just the filename
-        c = canvas.Canvas(file_name_with_path, pagesize=letter)
-        y_position = 750
-        c.drawString(100, y_position, "Inscripción de establecimiento para actividad de caza 2025.")
-        y_position -= 20
-        c.drawString(100, y_position, "Dirección Provincial de Fauna de Neuquén.")
-        y_position -= 40
-        c.drawString(100, y_position, f"ID de Registro: {establishment_data.id}")
-        y_position -= 20
-        c.drawString(100, y_position, f"Nombre del Establecimiento: {establishment_data.name}")
-        y_position -= 20
-        c.drawString(100, y_position, f"Email del Propietario: {establishment_data.owner_email}")
-        y_position -= 20
-        c.drawString(100, y_position, f"CUIT: {establishment_data.cuit}")
-        y_position -= 20
-        c.drawString(100, y_position, f"Dirección: {establishment_data.address}")
-        c.save()
-        print(f"PDF generated: {file_name_with_path}")
+        file_name_only = f"registro_{establishment_data.id}.pdf"
+        file_path_with_dir = os.path.join("pdfs", file_name_only) # Full path for saving
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Certificado de Registro</title>
+            <style>
+                body {{ font-family: sans-serif; margin: 2cm; }}
+                h1 {{ color: #333; }}
+                p {{ margin-bottom: 0.5cm; }}
+                .highlight {{ background-color: #f0f0f0; padding: 5px; }}
+            </style>
+        </head>
+        <body>
+            <h1>Inscripción de establecimiento para actividad de caza 2025.</h1>
+            <p>Dirección Provincial de Fauna de Neuquén.</p>
+            <p class="highlight"><strong>ID de Registro:</strong> {establishment_data.id}</p>
+            <p><strong>Nombre del Establecimiento:</strong> {establishment_data.name}</p>
+            <p><strong>Email del Propietario:</strong> {establishment_data.owner_email}</p>
+            <p><strong>CUIT:</strong> {establishment_data.cuit}</p>
+            <p><strong>Dirección:</strong> {establishment_data.address}</p>
+            <p>Este certificado confirma el registro exitoso en el Sistema Caza 2025.</p>
+        </body>
+        </html>
+        """
+        
+        HTML(string=html_content).write_pdf(file_path_with_dir)
+        print(f"PDF generated: {file_path_with_dir}")
         return file_name_only # Return only the filename
     except Exception as e:
-        print(f"Error generating PDF: {e}")
+        print(f"Error generating PDF with WeasyPrint: {e}")
         return None
 
 @app.post("/webhook", response_model=EstablishmentResponse)
