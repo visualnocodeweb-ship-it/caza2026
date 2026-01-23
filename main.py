@@ -168,16 +168,25 @@ async def handle_webhook(
             data = dict(form)
             print(f"DEBUG: Received form-data: {data}")
 
-        # Map Fluent Form field names to our model fields
-        # Common field mappings - adjust based on your actual form field names
+        # Extract data directly from Fluent Form webhook
+        # Fields: name, owner_email, cuit, address (as configured in Fluent Form)
         establishment_data = {
-            "name": data.get("nombre_establecimiento") or data.get("name") or data.get("establishment_name"),
-            "owner_email": data.get("email_propietario") or data.get("owner_email") or data.get("email"),
-            "cuit": data.get("cuit") or data.get("cuit_number"),
-            "address": data.get("direccion") or data.get("address") or data.get("direccion_establecimiento")
+            "name": data.get("name"),
+            "owner_email": data.get("owner_email"),
+            "cuit": data.get("cuit"),
+            "address": data.get("address")
         }
 
         print(f"DEBUG: Mapped establishment data: {establishment_data}")
+
+        # Validate that we received all required fields
+        missing_fields = [field for field, value in establishment_data.items() if not value]
+        if missing_fields:
+            print(f"WARNING: Missing fields from webhook: {missing_fields}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Missing required fields: {', '.join(missing_fields)}"
+            )
 
         # Create database record
         db_establishment = Establishment(**establishment_data)
@@ -188,20 +197,29 @@ async def handle_webhook(
         print(f"DEBUG: Created establishment with ID: {db_establishment.id}")
         print(f"DEBUG: Establishment details - Name: {db_establishment.name}, Email: {db_establishment.owner_email}, CUIT: {db_establishment.cuit}, Address: {db_establishment.address}")
 
-        # Only generate PDF if we have the required data
-        pdf_path = None
-        if db_establishment.name and db_establishment.owner_email and db_establishment.cuit and db_establishment.address:
-            try:
-                pdf_path = generate_establishment_pdf(EstablishmentSchema.model_validate(db_establishment))
+        # Generate PDF automatically
+        try:
+            pdf_path = generate_establishment_pdf(EstablishmentSchema.model_validate(db_establishment))
+            if pdf_path:
                 db_establishment.pdf_path = pdf_path
                 db.commit()
                 db.refresh(db_establishment)
                 print(f"DEBUG: PDF generated successfully: {pdf_path}")
-            except Exception as pdf_error:
-                print(f"ERROR: Failed to generate PDF: {pdf_error}")
-                # Continue anyway - we have the establishment saved
-        else:
-            print(f"WARNING: Incomplete data, skipping PDF generation")
+                print(f"DEBUG: PDF accessible at: https://caza2026.onrender.com/{pdf_path}")
+            else:
+                print(f"ERROR: PDF generation returned None")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to generate PDF certificate"
+                )
+        except Exception as pdf_error:
+            print(f"ERROR: Failed to generate PDF: {pdf_error}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to generate PDF: {str(pdf_error)}"
+            )
 
         return EstablishmentResponse(
             id=db_establishment.id,
