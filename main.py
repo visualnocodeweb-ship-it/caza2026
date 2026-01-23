@@ -51,8 +51,7 @@ if not os.path.exists("pdfs"):
 # Serve static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Serve generated PDFs
-app.mount("/pdfs", StaticFiles(directory="pdfs"), name="pdfs")
+
 
 @app.on_event("startup")
 def on_startup():

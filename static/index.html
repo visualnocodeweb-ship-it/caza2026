@@ -58,7 +58,7 @@
                         pdfButton.textContent = "Ver PDF";
                         pdfButton.className = "action-button";
                         if (establishment.pdf_path) {
-                            pdfButton.onclick = () => window.open(`/${establishment.pdf_path}`, '_blank');
+                            pdfButton.onclick = () => window.open(`https://caza2026-pdfs-static.onrender.com/${establishment.pdf_path}`, '_blank');
                         } else {
                             pdfButton.disabled = true;
                             pdfButton.title = "PDF aún no generado";
