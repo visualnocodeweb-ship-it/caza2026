@@ -1,4 +1,4 @@
-from os import getenv
+import os # Changed from 'from os import getenv'
 from typing import List, Optional
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
@@ -15,7 +15,7 @@ from airtable_service import get_current_price
 # Initialize Mercado Pago SDK
 # IMPORTANT: Replace with your actual Mercado Pago Access Token
 # It's highly recommended to use environment variables for sensitive data
-MERCADOPAGO_ACCESS_TOKEN = getenv("MERCADOPAGO_ACCESS_TOKEN", "YOUR_MERCADOPAGO_ACCESS_TOKEN")
+MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "YOUR_MERCADOPAGO_ACCESS_TOKEN") # Changed to os.getenv
 mp = mercadopago.SDK(MERCADOPAGO_ACCESS_TOKEN)
 
 # Pydantic models
