@@ -18,11 +18,12 @@ class Establishment(Base):
     __tablename__ = "establishments"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    owner_email = Column(String, unique=True, index=True)
-    cuit = Column(String, unique=True, index=True)
-    address = Column(String)
+    name = Column(String, index=True, nullable=True)
+    owner_email = Column(String, unique=True, index=True, nullable=True)
+    cuit = Column(String, unique=True, index=True, nullable=True)
+    address = Column(String, nullable=True)
     payment_link = Column(String, nullable=True) # New field for Mercado Pago payment link
+    pdf_path = Column(String, nullable=True) # New field for PDF path
 
 # Create the database tables
 def create_db_and_tables():

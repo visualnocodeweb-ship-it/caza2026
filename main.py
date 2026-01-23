@@ -20,18 +20,22 @@ mp = mercadopago.SDK(MERCADOPAGO_ACCESS_TOKEN)
 
 # Pydantic models
 class EstablishmentBase(BaseModel):
-    name: str
-    owner_email: EmailStr
-    cuit: str
-    address: str
+    name: Optional[str] = None
+    owner_email: Optional[str] = None
+    cuit: Optional[str] = None
+    address: Optional[str] = None
 
-class EstablishmentCreate(BaseModel):
+class EstablishmentCreate(EstablishmentBase):
     pass
 
-class EstablishmentSchema(EstablishmentBase):
+class EstablishmentSchema(BaseModel):
     id: int
-    payment_link: Optional[str] = None # Added payment_link to schema
-    pdf_path: Optional[str] = None # Added pdf_path to schema
+    name: Optional[str] = None
+    owner_email: Optional[str] = None
+    cuit: Optional[str] = None
+    address: Optional[str] = None
+    payment_link: Optional[str] = None
+    pdf_path: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -147,24 +151,57 @@ def generate_establishment_pdf(establishment_data: EstablishmentSchema) -> Optio
 
 @app.post("/webhook", response_model=EstablishmentResponse)
 async def handle_webhook(
-    establishment: EstablishmentCreate,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     try:
-        print(f"DEBUG: Incoming Pydantic model from webhook: {establishment.model_dump_json()}") # Debug print 1
-        
-        db_establishment = Establishment(**establishment.model_dump()) # Use model_dump for Pydantic v2
-        db.add(db_establishment)
-        db.commit() # Commit here to get the ID for PDF generation
-        db.refresh(db_establishment)
-        print("DEBUG: db_establishment after initial commit:", db_establishment.id, db_establishment.name, db_establishment.owner_email, db_establishment.cuit, db_establishment.address) # Debug print 2
+        # Parse incoming data - Fluent Form Pro can send JSON or form-data
+        content_type = request.headers.get("content-type", "")
+        print(f"DEBUG: Content-Type: {content_type}")
 
-        # PDF is still generated automatically on webhook receipt
-        pdf_path = generate_establishment_pdf(EstablishmentSchema.model_validate(db_establishment)) # Use model_validate for Pydantic v2
-        db_establishment.pdf_path = pdf_path # Assign pdf_path to the database object
-        db.commit() # Commit again to save pdf_path
+        if "application/json" in content_type:
+            data = await request.json()
+            print(f"DEBUG: Received JSON data: {data}")
+        else:
+            # Handle form-data
+            form = await request.form()
+            data = dict(form)
+            print(f"DEBUG: Received form-data: {data}")
+
+        # Map Fluent Form field names to our model fields
+        # Common field mappings - adjust based on your actual form field names
+        establishment_data = {
+            "name": data.get("nombre_establecimiento") or data.get("name") or data.get("establishment_name"),
+            "owner_email": data.get("email_propietario") or data.get("owner_email") or data.get("email"),
+            "cuit": data.get("cuit") or data.get("cuit_number"),
+            "address": data.get("direccion") or data.get("address") or data.get("direccion_establecimiento")
+        }
+
+        print(f"DEBUG: Mapped establishment data: {establishment_data}")
+
+        # Create database record
+        db_establishment = Establishment(**establishment_data)
+        db.add(db_establishment)
+        db.commit()
         db.refresh(db_establishment)
-        print("DEBUG: db_establishment after saving pdf_path:", db_establishment.id, db_establishment.name, db_establishment.owner_email, db_establishment.cuit, db_establishment.address, db_establishment.pdf_path) # Debug print 3
+
+        print(f"DEBUG: Created establishment with ID: {db_establishment.id}")
+        print(f"DEBUG: Establishment details - Name: {db_establishment.name}, Email: {db_establishment.owner_email}, CUIT: {db_establishment.cuit}, Address: {db_establishment.address}")
+
+        # Only generate PDF if we have the required data
+        pdf_path = None
+        if db_establishment.name and db_establishment.owner_email and db_establishment.cuit and db_establishment.address:
+            try:
+                pdf_path = generate_establishment_pdf(EstablishmentSchema.model_validate(db_establishment))
+                db_establishment.pdf_path = pdf_path
+                db.commit()
+                db.refresh(db_establishment)
+                print(f"DEBUG: PDF generated successfully: {pdf_path}")
+            except Exception as pdf_error:
+                print(f"ERROR: Failed to generate PDF: {pdf_error}")
+                # Continue anyway - we have the establishment saved
+        else:
+            print(f"WARNING: Incomplete data, skipping PDF generation")
 
         return EstablishmentResponse(
             id=db_establishment.id,
@@ -172,13 +209,23 @@ async def handle_webhook(
             owner_email=db_establishment.owner_email,
             cuit=db_establishment.cuit,
             address=db_establishment.address,
-            pdf_path=pdf_path # Ensure pdf_path is included in the response
+            pdf_path=pdf_path
         )
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
+        print(f"ERROR: IntegrityError: {e}")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Establishment with this CUIT or owner email already exists."
+        )
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR: Unexpected error in webhook: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process webhook: {str(e)}"
         )
 
 @app.post("/establishments/{establishment_id}/generate-payment", response_model=EstablishmentPaymentLink)
@@ -190,7 +237,7 @@ async def generate_payment_link_for_establishment(
     if not db_establishment:
         raise HTTPException(status_code=404, detail="Establishment not found")
 
-    payment_link = create_mercadopago_preference(EstablishmentSchema.from_orm(db_establishment))
+    payment_link = create_mercadopago_preference(EstablishmentSchema.model_validate(db_establishment))
     if not payment_link:
         raise HTTPException(status_code=500, detail="Failed to generate payment link")
 
