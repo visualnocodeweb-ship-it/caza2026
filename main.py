@@ -159,6 +159,10 @@ async def handle_webhook(
 
         # PDF is still generated automatically on webhook receipt
         pdf_path = generate_establishment_pdf(EstablishmentSchema.from_orm(db_establishment))
+        db_establishment.pdf_path = pdf_path # Assign pdf_path to the database object
+        db.commit()
+        db.refresh(db_establishment)
+        print("Received webhook payload and saved to DB:", db_establishment.dict())
 
         return EstablishmentResponse(
             id=db_establishment.id,
@@ -166,8 +170,7 @@ async def handle_webhook(
             owner_email=db_establishment.owner_email,
             cuit=db_establishment.cuit,
             address=db_establishment.address,
-            # payment_link is no longer generated here
-            pdf_path=pdf_path
+            pdf_path=pdf_path # Ensure pdf_path is included in the response
         )
     except IntegrityError:
         db.rollback()
