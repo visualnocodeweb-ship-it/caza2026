@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime
 
 # SQLite database URL
 DATABASE_URL = "sqlite:///./sql_app.db"
@@ -24,6 +25,8 @@ class Establishment(Base):
     address = Column(String, nullable=True)
     payment_link = Column(String, nullable=True) # New field for Mercado Pago payment link
     pdf_path = Column(String, nullable=True) # New field for PDF path
+    webhook_data = Column(Text, nullable=True) # Store complete webhook data as JSON
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False) # Timestamp of creation
 
 # Create the database tables
 def create_db_and_tables():
