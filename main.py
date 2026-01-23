@@ -122,8 +122,9 @@ def generate_establishment_pdf(establishment_data: EstablishmentSchema) -> Optio
     Generates a PDF certificate for the given establishment.
     """
     try:
-        file_name = f"pdfs/registro_{establishment_data.id}.pdf"
-        c = canvas.Canvas(file_name, pagesize=letter)
+        file_name_with_path = f"pdfs/registro_{establishment_data.id}.pdf"
+        file_name_only = f"registro_{establishment_data.id}.pdf" # Just the filename
+        c = canvas.Canvas(file_name_with_path, pagesize=letter)
         y_position = 750
         c.drawString(100, y_position, "Inscripción de establecimiento para actividad de caza 2025.")
         y_position -= 20
@@ -139,8 +140,8 @@ def generate_establishment_pdf(establishment_data: EstablishmentSchema) -> Optio
         y_position -= 20
         c.drawString(100, y_position, f"Dirección: {establishment_data.address}")
         c.save()
-        print(f"PDF generated: {file_name}")
-        return file_name
+        print(f"PDF generated: {file_name_with_path}")
+        return file_name_only # Return only the filename
     except Exception as e:
         print(f"Error generating PDF: {e}")
         return None
