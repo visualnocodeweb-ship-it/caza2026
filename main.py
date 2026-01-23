@@ -1,4 +1,4 @@
-import os
+from os import getenv
 from typing import List, Optional
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
@@ -9,12 +9,13 @@ from sqlalchemy.exc import IntegrityError
 import mercadopago
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from .database import Establishment, create_db_and_tables, get_db
+from database import Establishment, create_db_and_tables, get_db # Changed from .database
+from airtable_service import get_current_price # Changed from .airtable_service
 
 # Initialize Mercado Pago SDK
 # IMPORTANT: Replace with your actual Mercado Pago Access Token
 # It's highly recommended to use environment variables for sensitive data
-MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "YOUR_MERCADOPAGO_ACCESS_TOKEN")
+MERCADOPAGO_ACCESS_TOKEN = getenv("MERCADOPAGO_ACCESS_TOKEN", "YOUR_MERCADOPAGO_ACCESS_TOKEN")
 mp = mercadopago.SDK(MERCADOPAGO_ACCESS_TOKEN)
 
 # Pydantic models
@@ -80,12 +81,13 @@ def create_mercadopago_preference(establishment_data: EstablishmentSchema) -> Op
     Creates a Mercado Pago preference (payment link) for the given establishment.
     """
     try:
+        current_price = get_current_price() # Get price from Airtable
         preference_data = {
             "items": [
                 {
                     "title": f"Registro Establecimiento {establishment_data.name}",
                     "quantity": 1,
-                    "unit_price": 100.00,  # Placeholder price, adjust as needed
+                    "unit_price": current_price,  # Use price from Airtable
                     "currency_id": "ARS",  # Argentina Pesos
                 }
             ],
