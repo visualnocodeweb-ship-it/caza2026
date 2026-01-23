@@ -7,7 +7,8 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 import mercadopago
-from weasyprint import HTML, CSS # New PDF library
+from reportlab.lib.pagesizes import letter # Reverted to reportlab
+from reportlab.pdfgen import canvas # Reverted to reportlab
 from database import Establishment, create_db_and_tables, get_db
 from airtable_service import get_current_price
 
@@ -24,7 +25,7 @@ class EstablishmentBase(BaseModel):
     cuit: str
     address: str
 
-class EstablishmentCreate(EstablishmentBase):
+class EstablishmentCreate(BaseModel):
     pass
 
 class EstablishmentSchema(EstablishmentBase):
@@ -51,7 +52,8 @@ if not os.path.exists("pdfs"):
 # Serve static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-
+# Serve generated PDFs
+app.mount("/pdfs", StaticFiles(directory="pdfs"), name="pdfs") # Re-added this mount
 
 @app.on_event("startup")
 def on_startup():
@@ -117,42 +119,30 @@ def create_mercadopago_preference(establishment_data: EstablishmentSchema) -> Op
 
 def generate_establishment_pdf(establishment_data: EstablishmentSchema) -> Optional[str]:
     """
-    Generates a PDF certificate for the given establishment using WeasyPrint.
+    Generates a PDF certificate for the given establishment.
     """
     try:
-        file_name_only = f"registro_{establishment_data.id}.pdf"
-        file_path_with_dir = os.path.join("pdfs", file_name_only) # Full path for saving
-
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Certificado de Registro</title>
-            <style>
-                body {{ font-family: sans-serif; margin: 2cm; }}
-                h1 {{ color: #333; }}
-                p {{ margin-bottom: 0.5cm; }}
-                .highlight {{ background-color: #f0f0f0; padding: 5px; }}
-            </style>
-        </head>
-        <body>
-            <h1>Inscripción de establecimiento para actividad de caza 2025.</h1>
-            <p>Dirección Provincial de Fauna de Neuquén.</p>
-            <p class="highlight"><strong>ID de Registro:</strong> {establishment_data.id}</p>
-            <p><strong>Nombre del Establecimiento:</strong> {establishment_data.name}</p>
-            <p><strong>Email del Propietario:</strong> {establishment_data.owner_email}</p>
-            <p><strong>CUIT:</strong> {establishment_data.cuit}</p>
-            <p><strong>Dirección:</strong> {establishment_data.address}</p>
-            <p>Este certificado confirma el registro exitoso en el Sistema Caza 2025.</p>
-        </body>
-        </html>
-        """
-        
-        HTML(string=html_content).write_pdf(file_path_with_dir)
-        print(f"PDF generated: {file_path_with_dir}")
-        return file_name_only # Return only the filename
+        file_name = f"pdfs/registro_{establishment_data.id}.pdf"
+        c = canvas.Canvas(file_name, pagesize=letter)
+        y_position = 750
+        c.drawString(100, y_position, "Inscripción de establecimiento para actividad de caza 2025.")
+        y_position -= 20
+        c.drawString(100, y_position, "Dirección Provincial de Fauna de Neuquén.")
+        y_position -= 40
+        c.drawString(100, y_position, f"ID de Registro: {establishment_data.id}")
+        y_position -= 20
+        c.drawString(100, y_position, f"Nombre del Establecimiento: {establishment_data.name}")
+        y_position -= 20
+        c.drawString(100, y_position, f"Email del Propietario: {establishment_data.owner_email}")
+        y_position -= 20
+        c.drawString(100, y_position, f"CUIT: {establishment_data.cuit}")
+        y_position -= 20
+        c.drawString(100, y_position, f"Dirección: {establishment_data.address}")
+        c.save()
+        print(f"PDF generated: {file_name}")
+        return file_name # Return the full path
     except Exception as e:
-        print(f"Error generating PDF with WeasyPrint: {e}")
+        print(f"Error generating PDF: {e}")
         return None
 
 @app.post("/webhook", response_model=EstablishmentResponse)
