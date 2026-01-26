@@ -37,6 +37,10 @@
 
             async function loadEstablishmentDetails(id) {
                 try {
+                    // Fetch FIELD_LABEL_MAP
+                    const labelsResponse = await fetch('/field_labels');
+                    const FIELD_LABEL_MAP = await labelsResponse.json();
+
                     const response = await fetch(`/establishments/${id}`);
                     const establishment = await response.json();
 
@@ -62,12 +66,13 @@
                             formDataDisplay.innerHTML += '<h3>Detalles del Webhook</h3>';
                             for (const key in webhookData) {
                                 if (webhookData.hasOwnProperty(key)) {
+                                    const displayKey = FIELD_LABEL_MAP[key] || key; // Use mapped label or original key
                                     let displayValue = webhookData[key];
                                     if (typeof displayValue === 'object' && displayValue !== null) {
                                         displayValue = JSON.stringify(displayValue, null, 2);
-                                        formDataDisplay.innerHTML += `<div class="detail-item"><strong>${key}:</strong> <pre>${displayValue}</pre></div>`;
+                                        formDataDisplay.innerHTML += `<div class="detail-item"><strong>${displayKey}:</strong> <pre>${displayValue}</pre></div>`;
                                     } else {
-                                        formDataDisplay.innerHTML += `<div class="detail-item"><strong>${key}:</strong> ${displayValue}</div>`;
+                                        formDataDisplay.innerHTML += `<div class="detail-item"><strong>${displayKey}:</strong> ${displayValue}</div>`;
                                     }
                                 }
                             }

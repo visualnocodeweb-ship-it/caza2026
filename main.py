@@ -356,6 +356,10 @@ async def serve_establishment_details(request: Request):
     with open("static/establishment_detail.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
+@app.get("/field_labels")
+async def get_field_labels():
+    return FIELD_LABEL_MAP
+
 
 
 if __name__ == "__main__":
