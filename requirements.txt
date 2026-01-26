@@ -25,7 +25,7 @@ pyphen==0.17.2
 reportlab==4.4.9
 requests==2.32.5
 SQLAlchemy==2.0.46
-psycopg[binary]==3.1.18
+psycopg[binary]
 starlette==0.50.0
 tinycss2==1.5.1
 tinyhtml5==2.0.0
