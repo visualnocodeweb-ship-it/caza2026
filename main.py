@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Dict
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -175,6 +175,11 @@ async def update_price(name: str, price_update: PriceCreate, db: Session = Depen
     db.commit()
     db.refresh(db_price)
     return db_price
+
+# --- Field Label Endpoint ---
+@app.get("/field-labels", response_model=Dict[str, str])
+async def get_field_labels():
+    return FIELD_LABEL_MAP
 
 # --- Mercado Pago and PDF Functions ---
 # def create_mercadopago_preference(

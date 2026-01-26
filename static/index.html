@@ -8,7 +8,7 @@
         body { font-family: Arial, sans-serif; margin: 20px; }
         h1 { color: #333; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; white-space: nowrap; }
         th { background-color: #f2f2f2; position: sticky; top: 0; }
         .action-button { margin-right: 5px; padding: 5px 10px; cursor: pointer; }
         .view-toggle { margin-bottom: 20px; }
@@ -42,9 +42,7 @@
                         <th>Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- Data will be loaded here -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
@@ -60,8 +58,15 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cargar la vista resumida por defecto
+        let fieldLabels = {};
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('/field-labels');
+                fieldLabels = await response.json();
+            } catch (error) {
+                console.error('Error fetching field labels:', error);
+            }
             loadSummaryData();
         });
 
@@ -74,10 +79,8 @@
             document.getElementById(`${viewName}-view`).classList.add('active');
             document.getElementById(`btn-${viewName}`).classList.add('active');
 
-            if (viewName === 'full') {
+            if (viewName === 'full' && document.getElementById('fullDataTable').getElementsByTagName('tbody')[0].innerHTML === '') {
                 loadFullData();
-            } else {
-                loadSummaryData();
             }
         }
 
@@ -86,7 +89,7 @@
                 const response = await fetch('/establishments');
                 const data = await response.json();
                 const tableBody = document.getElementById('establishmentsTable').getElementsByTagName('tbody')[0];
-                tableBody.innerHTML = ''; // Clear existing rows
+                tableBody.innerHTML = ''; 
                 
                 data.forEach(establishment => {
                     const row = tableBody.insertRow();
@@ -102,7 +105,7 @@
                     pdfButton.textContent = "Ver PDF";
                     pdfButton.className = "action-button";
                     if (establishment.pdf_path) {
-                        pdfButton.onclick = () => window.open(`/${establishment.pdf_path}`, '_blank');
+                        pdfButton.onclick = () => window.open(establishment.pdf_path, '_blank');
                     } else {
                         pdfButton.disabled = true;
                     }
@@ -129,39 +132,43 @@
                     return;
                 }
 
-                const allKeys = new Set();
+                const allKeys = new Set(['id', 'pdf_path', 'fecha_registro']);
                 const processedData = [];
 
                 data.forEach(record => {
-                    let fullRecord = {
-                        id: record.id,
-                        nombre_establecimiento: record.name,
-                        email_propietario: record.owner_email,
-                        cuit: record.cuit,
-                        direccion: record.address,
-                        pdf_path: record.pdf_path,
-                        fecha_registro: record.created_at
-                    };
-
+                    let recordData = {};
                     if (record.webhook_data) {
-                        const webhookData = JSON.parse(record.webhook_data);
-                        // Limpiar llaves internas de Fluent Forms
-                        delete webhookData._fluentform_9_fluentformnonce;
-                        delete webhookData.__submission;
-                        Object.assign(fullRecord, webhookData);
+                        recordData = JSON.parse(record.webhook_data);
                     }
                     
-                    processedData.push(fullRecord);
-                    Object.keys(fullRecord).forEach(key => allKeys.add(key));
-                });
+                    // Add main fields and other top-level fields to the record for display
+                    recordData.id = record.id;
+                    recordData.pdf_path = record.pdf_path;
+                    recordData.fecha_registro = record.created_at;
 
-                const sortedKeys = Array.from(allKeys).sort();
+                    processedData.push(recordData);
+                    Object.keys(recordData).forEach(key => allKeys.add(key));
+                });
+                
+                const internalKeys = ['_fluentform_9_fluentformnonce', '__submission'];
+                internalKeys.forEach(key => allKeys.delete(key));
+
+                const sortedKeys = Array.from(allKeys).sort((a, b) => {
+                    // Prioritize some fields
+                    const priority = ['id', 'input_text', 'email', 'numeric_field_4'];
+                    const aP = priority.indexOf(a);
+                    const bP = priority.indexOf(b);
+                    if (aP !== -1 && bP !== -1) return aP - bP;
+                    if (aP !== -1) return -1;
+                    if (bP !== -1) return 1;
+                    return a.localeCompare(b);
+                });
 
                 // Crear encabezado
                 const headerRow = document.createElement('tr');
                 sortedKeys.forEach(key => {
                     const th = document.createElement('th');
-                    th.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    th.textContent = fieldLabels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                     headerRow.appendChild(th);
                 });
                 thead.appendChild(headerRow);
@@ -174,7 +181,14 @@
                         let value = record[key];
                         if (Array.isArray(value)) {
                             td.textContent = value.join(', ');
-                        } else {
+                        } else if (key === 'pdf_path' && value) {
+                            const link = document.createElement('a');
+                            link.href = value;
+                            link.textContent = 'Ver PDF';
+                            link.target = '_blank';
+                            td.appendChild(link);
+                        }
+                        else {
                             td.textContent = value !== null && value !== undefined ? value : '';
                         }
                         row.appendChild(td);
