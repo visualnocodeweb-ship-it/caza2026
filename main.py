@@ -18,6 +18,46 @@ from database import Establishment, Price, create_db_and_tables, get_db
 # MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "YOUR_MERCADOPAGO_ACCESS_TOKEN")
 # mp = mercadopago.SDK(MERCADOPAGO_ACCESS_TOKEN)
 
+# --- Field Mapping Dictionary ---
+FIELD_LABEL_MAP = {
+    "input_text": "Nombre del establecimiento",
+    "input_text_23": "Razón Social",
+    "numeric_field_4": "Número CUIT",
+    "phone": "WhatsApp",
+    "input_text_24": "Ubicación del ACM",
+    "email": "Email",
+    "numeric_field_2": "Superficie del establecimiento en hectáreas",
+    "input_text_2": "Departamento donde se ubica el establecimiento",
+    "input_text_9": "Ubicación catastral (Sección - Fracción - Lote)",
+    "input_text_10": "Coordenada Geográfica (Latitud y Longitud)",
+    "dropdown_1": "Establecimiento inscripto como criadero de fauna silvestre",
+    "multi_select": "Especies para caza mayor",
+    "dropdown_3": "Presencia de ciervos en el campo",
+    "dropdown_5": "Estimación numérica de ciervos",
+    "input_text_11": "Valor estimado de ciervos",
+    "input_text_13": "Margen de error en la estimación (+/- %)",
+    "dropdown_4": "Evolución del número de ciervos (últimos 5 años)",
+    "dropdown_6": "Porcentaje de superficie utilizada por ciervos",
+    "checkbox": "Tipo de manejo o aprovechamiento de ciervos",
+    "input_text_12": "Interés en mejorar prácticas de manejo",
+    "input_text_15": "Proporción observada Machos/Hembras",
+    "input_text_16": "Proporción en brama Machos/Hembras",
+    "multi_select_2": "Ambientes preferenciales de ciervos",
+    "numeric_field_3": "Estimación de ciervos extraídos por furtivos anualmente",
+    "input_text_20": "Cantidad aproximada de jabalíes",
+    "dropdown_8": "Evolución de la población de jabalí (últimos 3 años)",
+    "input_text_19": "Cantidad aproximada de pumas",
+    "dropdown_9": "Evolución de la población de pumas (últimos 3 años)",
+    "input_text_21": "Daños cuantificados por pumas (último año)",
+    "dropdown_10": "Presencia de poblaciones de guanacos",
+    "dropdown_11": "Evolución de la población de guanacos (últimos 3 años)",
+    "input_text_18": "Cantidad estimada de guanacos",
+    "dropdown_14": "Solicitará evaluación para aprovechamiento de guanaco",
+    "input_text_22": "Planilla completada por",
+    "datetime": "Fecha del formulario"
+}
+
+
 # --- Pydantic Models ---
 class EstablishmentBase(BaseModel):
     name: Optional[str] = None
@@ -54,7 +94,7 @@ class PriceBase(BaseModel):
 class PriceCreate(PriceBase):
     pass
 
-class PriceSchema(PriceBase):
+class PriceSchema(BaseBase):
     id: int
     updated_at: datetime
 
@@ -197,14 +237,13 @@ def generate_establishment_pdf(establishment_data: EstablishmentSchema, webhook_
         c.drawString(50, y_position, "INFORMACIÓN ADICIONAL DEL FORMULARIO")
         y_position -= 20
         c.setFont("Helvetica", 9)
-        # Exclude specific Fluent Forms keys that are already in main fields or are internal
         excluded_keys = {
-            "input_text", "email", "numeric_field_4", "input_text_24", # Main fields
-            "_fluentform_9_fluentformnonce", "__submission", "datetime", "created_at" # Internal/FluentForm's created_at, not for additional display
+            "input_text", "email", "numeric_field_4", "input_text_24",
+            "_fluentform_9_fluentformnonce", "__submission", "datetime", "created_at"
         }
         for key, value in webhook_data.items():
             if key not in excluded_keys and value:
-                field_name = key.replace('_', ' ').title()
+                field_name = FIELD_LABEL_MAP.get(key, key.replace('_', ' ').title())
                 if isinstance(value, list):
                     value_str = ", ".join(value)
                 else:
@@ -239,7 +278,6 @@ async def handle_webhook(request: Request, db: Session = Depends(get_db)):
         if "application/json" in content_type: data = await request.json()
         else: data = dict(await request.form())
 
-        # Map Fluent Forms keys to our internal keys
         establishment_data = {
             "name": data.get("input_text"),
             "owner_email": data.get("email"),
