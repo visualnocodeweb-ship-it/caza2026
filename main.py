@@ -81,6 +81,10 @@ class EstablishmentSchema(BaseModel):
     class Config:
         from_attributes = True
 
+# Schema for the full data view, including the raw webhook data
+class EstablishmentFullSchema(EstablishmentSchema):
+    webhook_data: Optional[str] = None
+
 class EstablishmentResponse(EstablishmentSchema):
     pdf_path: Optional[str] = None
 
@@ -331,6 +335,14 @@ async def handle_webhook(request: Request, db: Session = Depends(get_db)):
 async def get_establishments(db: Session = Depends(get_db)):
     establishments = db.query(Establishment).all()
     return establishments
+
+
+# Endpoint to get the full data for the spreadsheet view
+@app.get("/establishments/full", response_model=List[EstablishmentFullSchema])
+async def get_full_establishments(db: Session = Depends(get_db)):
+    establishments = db.query(Establishment).all()
+    return establishments
+
 
 if __name__ == "__main__":
     import uvicorn
