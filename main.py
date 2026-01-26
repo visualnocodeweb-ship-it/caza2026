@@ -218,7 +218,7 @@ def generate_establishment_pdf(establishment_data: EstablishmentSchema, webhook_
                     c.drawString(50, y_position, f"{field_name}: {value_str}"); y_position -= 15
                 if y_position < 50: c.showPage(); y_position = height - 50; c.setFont("Helvetica", 9)
     y_position -= 20
-    c.setFont("Helvetica-Italic", 8)
+    c.setFont("Helvetica", 8)
     c.drawString(50, 30, "Dirección Provincial de Fauna de Neuquén")
     c.drawString(50, 20, f"Documento generado automáticamente - {datetime.now().strftime('%d/%m/%Y')}")
     c.save()
