@@ -94,7 +94,7 @@ class PriceBase(BaseModel):
 class PriceCreate(PriceBase):
     pass
 
-class PriceSchema(BaseBase):
+class PriceSchema(PriceBase):
     id: int
     updated_at: datetime
 
