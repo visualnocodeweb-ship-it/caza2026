@@ -158,7 +158,6 @@ async def update_price(name: str, price_update: PriceCreate, db: Session = Depen
 #         return None
 
 def generate_establishment_pdf(establishment_data: EstablishmentSchema, webhook_data: dict, created_at: datetime) -> Optional[str]:
-    # This function remains the same as before
     file_name = f"pdfs/registro_{establishment_data.id}.pdf"
     c = canvas.Canvas(file_name, pagesize=letter)
     width, height = letter
@@ -198,11 +197,19 @@ def generate_establishment_pdf(establishment_data: EstablishmentSchema, webhook_
         c.drawString(50, y_position, "INFORMACIÓN ADICIONAL DEL FORMULARIO")
         y_position -= 20
         c.setFont("Helvetica", 9)
-        excluded_keys = {'name', 'owner_email', 'cuit', 'address'}
+        # Exclude specific Fluent Forms keys that are already in main fields or are internal
+        excluded_keys = {
+            "input_text", "email", "numeric_field_4", "input_text_24", # Main fields
+            "_fluentform_9_fluentformnonce", "__submission", "datetime", "created_at" # Internal/FluentForm's created_at, not for additional display
+        }
         for key, value in webhook_data.items():
             if key not in excluded_keys and value:
                 field_name = key.replace('_', ' ').title()
-                value_str = str(value)
+                if isinstance(value, list):
+                    value_str = ", ".join(value)
+                else:
+                    value_str = str(value)
+
                 if len(value_str) > 80:
                     words = value_str.split()
                     current_line = ""
@@ -227,16 +234,19 @@ def generate_establishment_pdf(establishment_data: EstablishmentSchema, webhook_
 # --- Establishment and Webhook Endpoints ---
 @app.post("/webhook", response_model=EstablishmentResponse)
 async def handle_webhook(request: Request, db: Session = Depends(get_db)):
-    content_type = request.headers.get("content-type", "")
-    if "application/json" in content_type: data = await request.json()
-    else: data = dict(await request.form())
-
-    # --- DEBUGGING STEP ---
-    raise HTTPException(status_code=status.HTTP_200_OK, detail={"received_data": data})
-    # --- END DEBUGGING STEP ---
-
     try:
-        establishment_data = {"name": data.get("name"), "owner_email": data.get("owner_email"), "cuit": data.get("cuit"), "address": data.get("address")}
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type: data = await request.json()
+        else: data = dict(await request.form())
+
+        # Map Fluent Forms keys to our internal keys
+        establishment_data = {
+            "name": data.get("input_text"),
+            "owner_email": data.get("email"),
+            "cuit": data.get("numeric_field_4"),
+            "address": data.get("input_text_24")
+        }
+        
         missing_fields = [field for field, value in establishment_data.items() if not value]
         if missing_fields:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Missing required fields: {', '.join(missing_fields)}")
