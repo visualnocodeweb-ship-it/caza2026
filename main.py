@@ -76,6 +76,7 @@ class EstablishmentSchema(BaseModel):
     address: Optional[str] = None
     payment_link: Optional[str] = None
     pdf_path: Optional[str] = None
+    webhook_data: Optional[str] = None # Added this line
     created_at: Optional[datetime] = None
 
     class Config:
