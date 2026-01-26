@@ -9,6 +9,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("La variable de entorno DATABASE_URL no está configurada. La aplicación no puede iniciar.")
 
+# Adjust the URL for the psycopg (v3) driver
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+
 # Create the SQLAlchemy engine for PostgreSQL
 engine = create_engine(DATABASE_URL)
 
