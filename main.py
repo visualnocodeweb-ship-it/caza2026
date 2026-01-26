@@ -160,74 +160,70 @@ async def update_price(name: str, price_update: PriceCreate, db: Session = Depen
 
 def generate_establishment_pdf(establishment_data: EstablishmentSchema, webhook_data: dict, created_at: datetime) -> Optional[str]:
     # This function remains the same as before
+    file_name = f"pdfs/registro_{establishment_data.id}.pdf"
+    c = canvas.Canvas(file_name, pagesize=letter)
+    width, height = letter
+
     try:
-        file_name = f"pdfs/registro_{establishment_data.id}.pdf"
-        c = canvas.Canvas(file_name, pagesize=letter)
-        width, height = letter
+        logo_path = "static/logo.png"
+        if os.path.exists(logo_path):
+            logo = ImageReader(logo_path)
+            logo_width, logo_height = 300, 50
+            c.drawImage(logo, 50, height - 80, width=logo_width, height=logo_height, preserveAspectRatio=True, mask='auto')
+        else:
+            print(f"WARNING: Logo not found at {logo_path}")
+    except Exception as logo_error:
+        print(f"ERROR: Could not add logo: {logo_error}")
 
-        try:
-            logo_path = "static/logo.png"
-            if os.path.exists(logo_path):
-                logo = ImageReader(logo_path)
-                logo_width, logo_height = 300, 50
-                c.drawImage(logo, 50, height - 80, width=logo_width, height=logo_height, preserveAspectRatio=True, mask='auto')
-            else:
-                print(f"WARNING: Logo not found at {logo_path}")
-        except Exception as logo_error:
-            print(f"ERROR: Could not add logo: {logo_error}")
-
-        y_position = height - 120
-        c.setFont("Helvetica-Bold", 16)
-        c.drawString(50, y_position, "Inscripción de establecimiento para actividad de caza 2026")
-        y_position -= 30
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y_position, f"ID de Registro: {establishment_data.id}")
-        y_position -= 20
-        c.drawString(50, y_position, f"Fecha de Registro: {created_at.strftime('%d/%m/%Y %H:%M:%S')}")
-        y_position -= 30
+    y_position = height - 120
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, y_position, "Inscripción de establecimiento para actividad de caza 2026")
+    y_position -= 30
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y_position, f"ID de Registro: {establishment_data.id}")
+    y_position -= 20
+    c.drawString(50, y_position, f"Fecha de Registro: {created_at.strftime('%d/%m/%Y %H:%M:%S')}")
+    y_position -= 30
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(50, y_position, "DATOS PRINCIPALES")
+    y_position -= 20
+    c.setFont("Helvetica", 10)
+    main_fields = [("Nombre del Establecimiento", establishment_data.name), ("Email del Propietario", establishment_data.owner_email), ("CUIT", establishment_data.cuit), ("Dirección/Ubicación", establishment_data.address)]
+    for label, value in main_fields:
+        if value:
+            c.drawString(50, y_position, f"{label}: {value}")
+            y_position -= 18
+    y_position -= 10
+    if webhook_data:
         c.setFont("Helvetica-Bold", 10)
-        c.drawString(50, y_position, "DATOS PRINCIPALES")
+        c.drawString(50, y_position, "INFORMACIÓN ADICIONAL DEL FORMULARIO")
         y_position -= 20
-        c.setFont("Helvetica", 10)
-        main_fields = [("Nombre del Establecimiento", establishment_data.name), ("Email del Propietario", establishment_data.owner_email), ("CUIT", establishment_data.cuit), ("Dirección/Ubicación", establishment_data.address)]
-        for label, value in main_fields:
-            if value:
-                c.drawString(50, y_position, f"{label}: {value}")
-                y_position -= 18
-        y_position -= 10
-        if webhook_data:
-            c.setFont("Helvetica-Bold", 10)
-            c.drawString(50, y_position, "INFORMACIÓN ADICIONAL DEL FORMULARIO")
-            y_position -= 20
-            c.setFont("Helvetica", 9)
-            excluded_keys = {'name', 'owner_email', 'cuit', 'address'}
-            for key, value in webhook_data.items():
-                if key not in excluded_keys and value:
-                    field_name = key.replace('_', ' ').title()
-                    value_str = str(value)
-                    if len(value_str) > 80:
-                        words = value_str.split()
-                        current_line = ""
-                        for word in words:
-                            if len(current_line + word) < 80:
-                                current_line += word + " "
-                            else:
-                                if current_line: c.drawString(50, y_position, f"{field_name}: {current_line.strip()}"); y_position -= 15; field_name = ""
-                                current_line = "  " + word + " "
-                        if current_line.strip(): c.drawString(50, y_position, f"{field_name}: {current_line.strip()}" if field_name else f"  {current_line.strip()}"); y_position -= 15
-                    else:
-                        c.drawString(50, y_position, f"{field_name}: {value_str}"); y_position -= 15
-                    if y_position < 50: c.showPage(); y_position = height - 50; c.setFont("Helvetica", 9)
-        y_position -= 20
-        c.setFont("Helvetica-Italic", 8)
-        c.drawString(50, 30, "Dirección Provincial de Fauna de Neuquén")
-        c.drawString(50, 20, f"Documento generado automáticamente - {datetime.now().strftime('%d/%m/%Y')}")
-        c.save()
-        return file_name
-    except Exception as e:
-        print(f"Error generating PDF: {e}")
-        import traceback; traceback.print_exc()
-        return None
+        c.setFont("Helvetica", 9)
+        excluded_keys = {'name', 'owner_email', 'cuit', 'address'}
+        for key, value in webhook_data.items():
+            if key not in excluded_keys and value:
+                field_name = key.replace('_', ' ').title()
+                value_str = str(value)
+                if len(value_str) > 80:
+                    words = value_str.split()
+                    current_line = ""
+                    for word in words:
+                        if len(current_line + word) < 80:
+                            current_line += word + " "
+                        else:
+                            if current_line: c.drawString(50, y_position, f"{field_name}: {current_line.strip()}"); y_position -= 15; field_name = ""
+                            current_line = "  " + word + " "
+                    if current_line.strip(): c.drawString(50, y_position, f"{field_name}: {current_line.strip()}" if field_name else f"  {current_line.strip()}"); y_position -= 15
+                else:
+                    c.drawString(50, y_position, f"{field_name}: {value_str}"); y_position -= 15
+                if y_position < 50: c.showPage(); y_position = height - 50; c.setFont("Helvetica", 9)
+    y_position -= 20
+    c.setFont("Helvetica-Italic", 8)
+    c.drawString(50, 30, "Dirección Provincial de Fauna de Neuquén")
+    c.drawString(50, 20, f"Documento generado automáticamente - {datetime.now().strftime('%d/%m/%Y')}")
+    c.save()
+    return file_name
+
 
 # --- Establishment and Webhook Endpoints ---
 @app.post("/webhook", response_model=EstablishmentResponse)
