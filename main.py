@@ -81,10 +81,6 @@ class EstablishmentSchema(BaseModel):
     class Config:
         from_attributes = True
 
-# Schema for the full data view, including the raw webhook data
-class EstablishmentFullSchema(EstablishmentSchema):
-    webhook_data: Optional[str] = None
-
 class EstablishmentResponse(EstablishmentSchema):
     pdf_path: Optional[str] = None
 
@@ -175,11 +171,6 @@ async def update_price(name: str, price_update: PriceCreate, db: Session = Depen
     db.commit()
     db.refresh(db_price)
     return db_price
-
-# --- Field Label Endpoint ---
-@app.get("/field-labels", response_model=Dict[str, str])
-async def get_field_labels():
-    return FIELD_LABEL_MAP
 
 # --- Mercado Pago and PDF Functions ---
 # def create_mercadopago_preference(
@@ -284,8 +275,12 @@ def generate_establishment_pdf(establishment_data: EstablishmentSchema, webhook_
 async def handle_webhook(request: Request, db: Session = Depends(get_db)):
     try:
         content_type = request.headers.get("content-type", "")
-        if "application/json" in content_type: data = await request.json()
-        else: data = dict(await request.form())
+        if "application/json" in content_type:
+            data = await request.json()
+        else:
+            data = dict(await request.form())
+        
+        print("Received webhook data:", data) # Debugging line
 
         establishment_data = {
             "name": data.get("input_text"),
@@ -341,14 +336,27 @@ async def get_establishments(db: Session = Depends(get_db)):
     establishments = db.query(Establishment).all()
     return establishments
 
+@app.get("/establishments/{establishment_id}", response_model=EstablishmentSchema)
+async def get_establishment(establishment_id: int, db: Session = Depends(get_db)):
+    establishment = db.query(Establishment).filter(Establishment.id == establishment_id).first()
+    if not establishment:
+        raise HTTPException(status_code=404, detail="Establishment not found")
+    return establishment
+
 
 # Endpoint to get the full data for the spreadsheet view
-@app.get("/establishments/full", response_model=List[EstablishmentFullSchema])
+@app.get("/establishments/full", response_model=List[EstablishmentSchema])
 async def get_full_establishments(db: Session = Depends(get_db)):
     establishments = db.query(Establishment).all()
     return establishments
 
+@app.get("/establishment_details", response_class=HTMLResponse)
+async def serve_establishment_details(request: Request):
+    with open("static/establishment_detail.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
