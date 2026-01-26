@@ -37,7 +37,7 @@ class EstablishmentSchema(BaseModel):
     payment_link: Optional[str] = None
     pdf_path: Optional[str] = None
     webhook_data: Optional[str] = None
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
