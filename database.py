@@ -6,6 +6,8 @@ from datetime import datetime
 
 # PostgreSQL database URL from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("La variable de entorno DATABASE_URL no está configurada. La aplicación no puede iniciar.")
 
 # Create the SQLAlchemy engine for PostgreSQL
 engine = create_engine(DATABASE_URL)

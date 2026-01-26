@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-import mercadopago
+# import mercadopago
 import json
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
@@ -14,9 +14,9 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from database import Establishment, Price, create_db_and_tables, get_db
 
-# Initialize Mercado Pago SDK
-MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "YOUR_MERCADOPAGO_ACCESS_TOKEN")
-mp = mercadopago.SDK(MERCADOPAGO_ACCESS_TOKEN)
+# # Initialize Mercado Pago SDK
+# MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "YOUR_MERCADOPAGO_ACCESS_TOKEN")
+# mp = mercadopago.SDK(MERCADOPAGO_ACCESS_TOKEN)
 
 # --- Pydantic Models ---
 class EstablishmentBase(BaseModel):
@@ -134,29 +134,29 @@ async def update_price(name: str, price_update: PriceCreate, db: Session = Depen
     return db_price
 
 # --- Mercado Pago and PDF Functions ---
-def create_mercadopago_preference(
-    establishment_data: EstablishmentSchema, db: Session
-) -> Optional[str]:
-    try:
-        current_price = get_current_price_from_db(db) / 100  # Assuming price is stored in cents
-        preference_data = {
-            "items": [{"title": f"Registro Establecimiento {establishment_data.name}", "quantity": 1, "unit_price": current_price, "currency_id": "ARS"}],
-            "payer": {"name": establishment_data.name, "email": establishment_data.owner_email},
-            "external_reference": str(establishment_data.id),
-            "back_urls": {
-                "success": "http://your-frontend.com/success",
-                "failure": "http://your-frontend.com/failure",
-                "pending": "http://your-frontend.com/pending",
-            },
-            "auto_return": "approved",
-        }
+# def create_mercadopago_preference(
+#     establishment_data: EstablishmentSchema, db: Session
+# ) -> Optional[str]:
+#     try:
+#         current_price = get_current_price_from_db(db) / 100  # Assuming price is stored in cents
+#         preference_data = {
+#             "items": [{"title": f"Registro Establecimiento {establishment_data.name}", "quantity": 1, "unit_price": current_price, "currency_id": "ARS"}],
+#             "payer": {"name": establishment_data.name, "email": establishment_data.owner_email},
+#             "external_reference": str(establishment_data.id),
+#             "back_urls": {
+#                 "success": "http://your-frontend.com/success",
+#                 "failure": "http://your-frontend.com/failure",
+#                 "pending": "http://your-frontend.com/pending",
+#             },
+#             "auto_return": "approved",
+#         }
         
-        preference_response = mp.preference().create(preference_data)
-        preference = preference_response["response"]
-        return preference["init_point"]
-    except Exception as e:
-        print(f"Error creating Mercado Pago preference: {e}")
-        return None
+#         preference_response = mp.preference().create(preference_data)
+#         preference = preference_response["response"]
+#         return preference["init_point"]
+#     except Exception as e:
+#         print(f"Error creating Mercado Pago preference: {e}")
+#         return None
 
 def generate_establishment_pdf(establishment_data: EstablishmentSchema, webhook_data: dict, created_at: datetime) -> Optional[str]:
     # This function remains the same as before
@@ -264,21 +264,21 @@ async def handle_webhook(request: Request, db: Session = Depends(get_db)):
         import traceback; traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to process webhook: {str(e)}")
 
-@app.post("/establishments/{establishment_id}/generate-payment", response_model=EstablishmentPaymentLink)
-async def generate_payment_link_for_establishment(establishment_id: int, db: Session = Depends(get_db)):
-    db_establishment = db.query(Establishment).filter(Establishment.id == establishment_id).first()
-    if not db_establishment:
-        raise HTTPException(status_code=404, detail="Establishment not found")
+# @app.post("/establishments/{establishment_id}/generate-payment", response_model=EstablishmentPaymentLink)
+# async def generate_payment_link_for_establishment(establishment_id: int, db: Session = Depends(get_db)):
+#     db_establishment = db.query(Establishment).filter(Establishment.id == establishment_id).first()
+#     if not db_establishment:
+#         raise HTTPException(status_code=404, detail="Establishment not found")
 
-    payment_link = create_mercadopago_preference(EstablishmentSchema.model_validate(db_establishment), db)
-    if not payment_link:
-        raise HTTPException(status_code=500, detail="Failed to generate payment link")
+#     payment_link = create_mercadopago_preference(EstablishmentSchema.model_validate(db_establishment), db)
+#     if not payment_link:
+#         raise HTTPException(status_code=500, detail="Failed to generate payment link")
 
-    db_establishment.payment_link = payment_link
-    db.commit()
-    db.refresh(db_establishment)
+#     db_establishment.payment_link = payment_link
+#     db.commit()
+#     db.refresh(db_establishment)
     
-    return EstablishmentPaymentLink(payment_link=payment_link)
+#     return EstablishmentPaymentLink(payment_link=payment_link)
 
 @app.get("/establishments", response_model=List[EstablishmentSchema])
 async def get_establishments(db: Session = Depends(get_db)):
