@@ -227,11 +227,15 @@ def generate_establishment_pdf(establishment_data: EstablishmentSchema, webhook_
 # --- Establishment and Webhook Endpoints ---
 @app.post("/webhook", response_model=EstablishmentResponse)
 async def handle_webhook(request: Request, db: Session = Depends(get_db)):
-    try:
-        content_type = request.headers.get("content-type", "")
-        if "application/json" in content_type: data = await request.json()
-        else: data = dict(await request.form())
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type: data = await request.json()
+    else: data = dict(await request.form())
 
+    # --- DEBUGGING STEP ---
+    raise HTTPException(status_code=status.HTTP_200_OK, detail={"received_data": data})
+    # --- END DEBUGGING STEP ---
+
+    try:
         establishment_data = {"name": data.get("name"), "owner_email": data.get("owner_email"), "cuit": data.get("cuit"), "address": data.get("address")}
         missing_fields = [field for field, value in establishment_data.items() if not value]
         if missing_fields:
