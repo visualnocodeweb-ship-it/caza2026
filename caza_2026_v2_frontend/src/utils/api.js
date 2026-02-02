@@ -1,7 +1,7 @@
 // src/utils/api.js
 // This file will contain functions to interact with your backend API
 
-const API_BASE_URL = 'http://localhost:8000/api'; // Example backend URL
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api'; // Example backend URL
 
 export const fetchInscripciones = async (page = 1, limit = 10) => {
   try {
