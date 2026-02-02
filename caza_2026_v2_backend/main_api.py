@@ -11,7 +11,7 @@ from pydantic import BaseModel # Import BaseModel for Pydantic models
 # Import your existing service files
 from sheets_services import read_sheet_data, append_sheet_data, GOOGLE_SHEET_ID, GOOGLE_SHEET_NAME
 from drive_services import list_pdfs_in_folder, GOOGLE_DRIVE_FOLDER_ID
-from email_services import send_simple_email # Importa la función de envío de correos
+from .email_services import send_simple_email # Importa la función de envío de correos
 
 
 # Load environment variables (important for GOOGLE_SHEET_ID, etc.)
