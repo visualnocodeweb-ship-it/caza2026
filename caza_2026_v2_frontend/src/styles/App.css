@@ -1,0 +1,198 @@
+.app-container {
+  text-align: center;
+  margin-bottom: 50px; /* Space for the DevSection button */
+}
+
+.app-header {
+  background-color: #F0F2F6; /* Light background for header */
+  padding: 20px;
+  border-bottom: 1px solid #E0E0E0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-container {
+  margin-bottom: 10px;
+}
+
+.app-logo {
+  max-width: 200px; /* Adjust as needed */
+  height: auto;
+}
+
+.app-title {
+  color: #262730;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+.navbar {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.nav-item {
+  padding: 8px 15px;
+  font-size: 16px;
+  font-weight: 900; /* Boldest font weight */
+  border-radius: 5px;
+  margin: 0; /* Maintain some margin, but gap will handle primary spacing */
+  border: 2px solid #A8C289; /* primaryColor */
+  background-color: #E6EFF2; /* Light corporate teal */
+  color: #2E5661; /* Dark corporate teal */
+  text-align: center;
+  text-decoration: none; /* Remove underline */
+  transition: all 0.3s ease-in-out;
+}
+
+.navbar {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 10px;
+  gap: 10px; /* Add gap for spacing between nav items */
+}
+
+.nav-item.active {
+  background-color: #2E5661; /* secondaryBackgroundColor */
+  color: #FFFFFF;
+  border-color: #2E5661;
+}
+
+.app-main {
+  padding: 20px;
+}
+
+.app-footer {
+  padding: 20px;
+  border-top: 1px solid #E0E0E0;
+  margin-top: 50px;
+  text-align: center;
+}
+
+/* DevSection Styling */
+.dev-section-container {
+  margin-top: 20px;
+}
+
+.dev-section-button {
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: #A8C289; /* primaryColor */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.dev-section-button:hover {
+  background-color: #8DA66A; /* Darker shade of primaryColor */
+}
+
+.dev-section-content {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  background-color: #F8F8F8;
+}
+
+.dev-section-content input[type="password"] {
+  padding: 8px;
+  margin-right: 10px;
+  border: 1px solid #CCC;
+  border-radius: 4px;
+}
+
+.dev-section-content button {
+  padding: 8px 15px;
+  background-color: #2E5661; /* secondaryBackgroundColor */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dev-section-content button:hover {
+  background-color: #1A3B43;
+}
+
+/* Inscripciones List and Card Styling */
+.inscripciones-list {
+  display: grid;
+  grid-template-columns: 1fr; /* Una columna por fila */
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.inscripcion-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  padding: 8px; /* Reduced from 10px */
+  text-align: left;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.inscripcion-card h3 {
+  color: #2E5661; /* Dark corporate teal */
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.inscripcion-card p {
+  font-size: 0.9em;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.pdf-link-button {
+  display: inline-block;
+  background-color: #A8C289; /* primaryColor */
+  color: white;
+  padding: 8px 15px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: bold;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.pdf-link-button:hover {
+  background-color: #8DA66A; /* Darker shade of primaryColor */
+}
+
+
+
+/* Expandable Card Specific Styles */
+.inscripcion-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding-bottom: 3px; /* Further reduced from 5px */
+  border-bottom: 1px solid #EEE;
+  margin-bottom: 3px; /* Further reduced from 5px */
+}
+
+.inscripcion-card .card-header h3 {
+  margin: 0;
+  font-size: 0.95em; /* Further reduced from 1em */
+}
+
+.inscripcion-card .expand-toggle {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #2E5661;
+}
+
+.inscripcion-card .card-details p {
+  margin-bottom: 5px;
+}
+
