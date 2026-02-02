@@ -43,8 +43,7 @@ else:
 # Payments Log Sheet Configuration
 PAGOS_SHEET_ID = os.getenv("PAGOS_SHEET_ID")
 PAGOS_SHEET_NAME = os.getenv("PAGOS_SHEET_NAME", "pagos")
-if not PAGOS_SHEET_ID:
-    raise ValueError("PAGOS_SHEET_ID environment variable not set for payments log.")
+
 
 SENDER_EMAIL_RESEND = os.getenv("SENDER_EMAIL_RESEND")
 if not SENDER_EMAIL_RESEND:
